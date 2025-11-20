@@ -23,6 +23,7 @@ const Chat: React.FC<ChatProps> = ({ replayMessages }) => {
   const [isLoading, setIsLoading] = useState(false);
   const chatRef = useRef<GenAIChat | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Use replay messages if provided, otherwise local state
   const displayMessages = replayMessages || messages;
@@ -59,15 +60,32 @@ const Chat: React.FC<ChatProps> = ({ replayMessages }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [displayMessages, isLoading]);
 
-  const handleSendMessage = async (e: FormEvent) => {
-    e.preventDefault();
+  // Auto-resize textarea
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      const newHeight = Math.min(textareaRef.current.scrollHeight, 120);
+      textareaRef.current.style.height = `${newHeight}px`;
+      textareaRef.current.style.overflowY = newHeight >= 120 ? 'auto' : 'hidden';
+    }
+  }, [inputValue]);
+
+  const handleSendMessage = async (e?: FormEvent) => {
+    if (e) e.preventDefault();
     if (isReplayMode) return;
     if (!inputValue.trim() || isLoading || !chatRef.current || isLimitReached) return;
 
-    const userMessage: ChatMessage = { role: 'user', text: inputValue };
+    const textToSend = inputValue.trim();
+    const userMessage: ChatMessage = { role: 'user', text: textToSend };
     setMessages(prev => [...prev, userMessage]);
     setInputValue('');
     setIsLoading(true);
+    
+    // Reset height immediately
+    if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto';
+    }
+
     diagnostics.log('CHAT_MSG_SENT', { text: userMessage.text });
 
     try {
@@ -82,6 +100,12 @@ const Chat: React.FC<ChatProps> = ({ replayMessages }) => {
       diagnostics.log('CHAT_ERROR', { error: String(error) });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+      handleSendMessage();
     }
   };
 
@@ -122,20 +146,23 @@ const Chat: React.FC<ChatProps> = ({ replayMessages }) => {
         </div>
       </div>
       <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-700">
-        <div className="flex items-center bg-gray-700 rounded-lg">
-          <input
-            type="text"
+        <div className="flex items-end bg-gray-700 rounded-lg">
+          <textarea
+            ref={textareaRef}
             value={inputValue}
             onChange={e => setInputValue(e.target.value)}
-            placeholder={isReplayMode ? "Replay Mode - Chat Disabled" : isLimitReached ? "Message limit reached" : "Ask for a hint..."}
+            onKeyDown={handleKeyDown}
+            placeholder={isReplayMode ? "Replay Mode - Chat Disabled" : isLimitReached ? "Message limit reached" : "Ask for a hint... (Enter for new line, Ctrl+Enter to send)"}
             disabled={isLoading || isLimitReached || isReplayMode}
-            className="w-full bg-transparent p-3 text-gray-200 placeholder-gray-400 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-transparent p-3 text-gray-200 placeholder-gray-400 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed resize-none overflow-hidden"
+            rows={1}
+            style={{ minHeight: '48px', maxHeight: '120px' }}
             aria-label="Chat input"
           />
           <button
             type="submit"
             disabled={isLoading || !inputValue.trim() || isLimitReached || isReplayMode}
-            className="p-3 text-cyan-400 hover:text-cyan-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors"
+            className="p-3 text-cyan-400 hover:text-cyan-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors mb-0.5"
             aria-label="Send message"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
