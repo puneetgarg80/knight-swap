@@ -31,6 +31,13 @@ const App: React.FC = () => {
   const [mainView, setMainView] = useState<MainView>('puzzle');
   const [showWalkthrough, setShowWalkthrough] = useState(false);
 
+  // Persistence for unlocked features
+  const [featuresUnlockedPersisted, setFeaturesUnlockedPersisted] = useState(() => {
+    try {
+        return localStorage.getItem('knightSwapFeaturesUnlocked') === 'true';
+    } catch { return false; }
+  });
+
   // Diagnostics / Replay State
   const [isDiagnosticsMode, setIsDiagnosticsMode] = useState(false);
   const [replayLogs, setReplayLogs] = useState<DiagnosticEvent[]>([]);
@@ -153,7 +160,17 @@ const App: React.FC = () => {
   const moveCount = activeHistory.length - 1;
 
   // Lock Map View and AI Helper until 30 attempts are made
-  const areFeaturesUnlocked = activeTotalAttempts >= 30;
+  const areFeaturesUnlocked = featuresUnlockedPersisted || activeTotalAttempts >= 30;
+
+  // Persist unlock state
+  useEffect(() => {
+    if (!isDiagnosticsMode && activeTotalAttempts >= 30 && !featuresUnlockedPersisted) {
+        setFeaturesUnlockedPersisted(true);
+        try {
+            localStorage.setItem('knightSwapFeaturesUnlocked', 'true');
+        } catch (e) { console.error(e); }
+    }
+  }, [activeTotalAttempts, isDiagnosticsMode, featuresUnlockedPersisted]);
 
   useEffect(() => {
     if (isDiagnosticsMode) return; // No local storage logic in diagnostics
