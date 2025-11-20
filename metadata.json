@@ -1,0 +1,5 @@
+{
+  "name": "Knight Swap",
+  "description": "An interactive puzzle demonstrating problem transformation. Swap the positions of the white and black knights on a custom chessboard by reconceptualizing the problem as a graph.",
+  "requestFramePermissions": []
+}
