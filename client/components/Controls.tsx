@@ -5,6 +5,7 @@ import ToggleSwitch from './ToggleSwitch';
 
 interface ControlsProps {
   moveCount: number;
+  score: number;
   onReset: () => void;
   onUndo: () => void;
   canUndo: boolean;
@@ -13,6 +14,7 @@ interface ControlsProps {
   isShowingTarget: boolean;
   onToggleTarget: () => void;
   isMapUnlocked: boolean;
+  onRequestUnlockMap: () => void;
 }
 
 const Button: React.FC<{ onClick: () => void; children: React.ReactNode; disabled?: boolean; className?: string }> = ({ onClick, children, disabled = false, className = '' }) => (
@@ -28,17 +30,36 @@ const Button: React.FC<{ onClick: () => void; children: React.ReactNode; disable
 );
 
 
-const Controls: React.FC<ControlsProps> = ({ moveCount, onReset, onUndo, canUndo, currentView, onViewChange, isShowingTarget, onToggleTarget, isMapUnlocked }) => {
+const Controls: React.FC<ControlsProps> = ({ 
+    moveCount, 
+    score,
+    onReset, 
+    onUndo, 
+    canUndo, 
+    currentView, 
+    onViewChange, 
+    isShowingTarget, 
+    onToggleTarget, 
+    isMapUnlocked,
+    onRequestUnlockMap
+}) => {
   return (
     <div className="flex flex-wrap items-center justify-between w-full bg-gray-800/50 p-3 rounded-lg gap-4">
-      <div className="text-lg" data-walkthrough="move-counter">
-        Moves: <span className="font-bold text-cyan-400 text-xl">{moveCount}</span>
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+          <div className="text-lg" data-walkthrough="move-counter">
+            Moves: <span className="font-bold text-cyan-400 text-xl">{moveCount}</span>
+          </div>
+          <div className="text-lg">
+            Score: <span className={`font-bold text-xl ${score >= 0 ? 'text-amber-400' : 'text-red-400'}`}>{score}</span>
+          </div>
       </div>
+      
       <div data-walkthrough="view-switcher">
         <ViewSwitcher 
           currentView={currentView} 
           onViewChange={onViewChange} 
           isMapUnlocked={isMapUnlocked}
+          onUnlockRequest={onRequestUnlockMap}
         />
       </div>
       <div className="flex items-center gap-4">

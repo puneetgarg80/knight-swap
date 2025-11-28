@@ -5,6 +5,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Knight Swap Challenge</title>
+    
+    <!-- Open Graph Meta Tags for Social Sharing -->
+    <!-- The backend service targets these specific strings for replacement -->
+    <meta property="og:title" content="Knight Swap Challenge" />
+    <meta property="og:description" content="Can you solve the puzzle? Swap the knights and beat my score!" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/api/og-image" />
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       html, body {
@@ -48,6 +56,6 @@
 </head>
   <body class="bg-gray-900 text-white antialiased">
     <div id="root"></div>
-    <script type="module" src="./index.tsx"></script>
+    <script type="module" src="/client/index.tsx"></script>
   </body>
 </html>

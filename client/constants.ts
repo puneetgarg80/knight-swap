@@ -154,4 +154,3 @@ Square 8 is the "switch."
 To swap the knights, you essentially need to rotate the pieces along this line, using the dead ends (3, 5, 10) as temporary parking spots to let other pieces pass.
 
 #####`;
-
