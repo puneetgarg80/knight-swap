@@ -54,6 +54,9 @@ COPY --from=client-build /app/client/dist /app/client/dist
 # Create logs directory and set permissions
 RUN mkdir -p logs && chown -R node:node logs
 
+# Create certificates directory and set permissions
+RUN mkdir -p public/certificates && chown -R node:node public/certificates
+
 # Expose the port the server listens on
 EXPOSE 3200
 
