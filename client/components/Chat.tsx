@@ -1,7 +1,6 @@
 
 import React, { useState, useRef, useEffect, FormEvent } from 'react';
-import { GoogleGenAI, Chat as GenAIChat } from '@google/genai';
-import { CHAT_SYSTEM_INSTRUCTION } from '../constants';
+
 import { diagnostics } from '../diagnostics';
 import { ChatMessage } from '../types';
 
@@ -9,25 +8,19 @@ interface ChatProps {
   replayMessages?: ChatMessage[];
 }
 
-if (!process.env.API_KEY) {
-    throw new Error("API_KEY environment variable is not set.");
-}
-
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
-
 const MAX_MESSAGES = 40;
 
 const Chat: React.FC<ChatProps> = ({ replayMessages }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const chatRef = useRef<GenAIChat | null>(null);
+  // chatRef removed as state is now managed via API calls
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Use replay messages if provided, otherwise local state
   const displayMessages = replayMessages || messages;
-  
+
   const isLimitReached = displayMessages.length >= MAX_MESSAGES;
   const isReplayMode = !!replayMessages;
 
@@ -35,23 +28,10 @@ const Chat: React.FC<ChatProps> = ({ replayMessages }) => {
     if (isReplayMode) return;
 
     const initializeChat = () => {
-      try {
-        chatRef.current = ai.chats.create({
-          model: 'gemini-2.5-flash',
-          config: {
-            systemInstruction: CHAT_SYSTEM_INSTRUCTION,
-          },
-        });
-        
-        const initialMsg: ChatMessage = { role: 'model', text: "Hello! I'm your AI assistant for the Knight Swap Puzzle. Do you need help?" };
-        setMessages([initialMsg]);
-        // Log the initial message so it appears in replays
-        diagnostics.log('CHAT_MSG_RECEIVED', { text: initialMsg.text });
-      } catch (error) {
-        console.error("Failed to initialize chat:", error);
-        setMessages([{ role: 'model', text: "Sorry, I'm having trouble connecting right now. Please try again later." }]);
-        diagnostics.log('CHAT_ERROR', { error: String(error) });
-      }
+      const initialMsg: ChatMessage = { role: 'model', text: "Hello! I'm your AI assistant for the Knight Swap Puzzle. Do you need help?" };
+      setMessages([initialMsg]);
+      // Log the initial message so it appears in replays
+      diagnostics.log('CHAT_MSG_RECEIVED', { text: initialMsg.text });
     };
     initializeChat();
   }, [isReplayMode]);
@@ -73,24 +53,48 @@ const Chat: React.FC<ChatProps> = ({ replayMessages }) => {
   const handleSendMessage = async (e?: FormEvent) => {
     if (e) e.preventDefault();
     if (isReplayMode) return;
-    if (!inputValue.trim() || isLoading || !chatRef.current || isLimitReached) return;
-
     const textToSend = inputValue.trim();
     const userMessage: ChatMessage = { role: 'user', text: textToSend };
     setMessages(prev => [...prev, userMessage]);
     setInputValue('');
     setIsLoading(true);
-    
+
     // Reset height immediately
     if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = 'auto';
     }
 
     diagnostics.log('CHAT_MSG_SENT', { text: userMessage.text });
 
     try {
-      const response = await chatRef.current.sendMessage({ message: userMessage.text });
-      const modelMessage: ChatMessage = { role: 'model', text: response.text };
+      // Prepare history for the API (excluding the message we just added locally for now, or include it? 
+      // The API expects history + new message. 
+      // Let's send the current messages as history.
+      // Note: The server expects { message: string, history: ChatMessage[] }
+      // The history should NOT include the current message being sent if we follow standard pattern, 
+      // or we can send it as part of history and empty message? 
+      // The GoogleGenAI SDK `chat.sendMessage` takes the new message. 
+      // So history should be the *previous* messages.
+
+      const historyForApi = messages.map(m => ({
+        role: m.role,
+        parts: [{ text: m.text }]
+      }));
+
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: textToSend,
+          history: historyForApi
+        })
+      });
+
+      if (!response.ok) throw new Error("API request failed");
+
+      const data = await response.json();
+      const modelMessage: ChatMessage = { role: 'model', text: data.text };
+
       setMessages(prev => [...prev, modelMessage]);
       diagnostics.log('CHAT_MSG_RECEIVED', { text: modelMessage.text });
     } catch (error) {
@@ -116,9 +120,8 @@ const Chat: React.FC<ChatProps> = ({ replayMessages }) => {
           {displayMessages.map((msg, index) => (
             <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div
-                className={`max-w-xs md:max-w-md lg:max-w-lg px-4 py-2 rounded-2xl ${
-                  msg.role === 'user' ? 'bg-cyan-600 text-white rounded-br-none' : 'bg-gray-700 text-gray-200 rounded-bl-none'
-                }`}
+                className={`max-w-xs md:max-w-md lg:max-w-lg px-4 py-2 rounded-2xl ${msg.role === 'user' ? 'bg-cyan-600 text-white rounded-br-none' : 'bg-gray-700 text-gray-200 rounded-bl-none'
+                  }`}
               >
                 <p className="whitespace-pre-wrap">{msg.text}</p>
               </div>
@@ -137,9 +140,9 @@ const Chat: React.FC<ChatProps> = ({ replayMessages }) => {
           )}
           {isLimitReached && (
             <div className="flex justify-center py-2">
-               <div className="px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-full text-gray-400 text-sm">
-                 {isReplayMode ? "Message limit reached during session." : `Message limit reached (${MAX_MESSAGES}).`}
-               </div>
+              <div className="px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-full text-gray-400 text-sm">
+                {isReplayMode ? "Message limit reached during session." : `Message limit reached (${MAX_MESSAGES}).`}
+              </div>
             </div>
           )}
           <div ref={messagesEndRef} />
