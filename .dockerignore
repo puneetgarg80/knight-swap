@@ -7,3 +7,4 @@ client/node_modules
 client/dist
 server/node_modules
 server/logs
+server/public/certificates/*.png

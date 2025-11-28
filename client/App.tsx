@@ -451,7 +451,12 @@ const App: React.FC = () => {
           userName={challengeInfo.name}
           onReset={() => { }}
           isChallengerView={true}
-          onAcceptChallenge={() => setShowChallengerModal(false)}
+          onAcceptChallenge={() => {
+            setShowChallengerModal(false);
+            setMainView('puzzle');
+            setView('board');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
         />
       )}
 
