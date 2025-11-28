@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => {
       '/api': {
         target: 'http://localhost:3200',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, '/api-proxy'),
+        // rewrite: (path) => path.replace(/^\/api/, '/api-proxy'),
       },
     },
     plugins: [react()],
