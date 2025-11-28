@@ -26,34 +26,34 @@ class DiagnosticsService {
 
   constructor() {
     this.sessionId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-    
-    this.log('APP_INIT', { 
-        userAgent: navigator.userAgent,
-        url: window.location.href,
-        screen: { width: window.screen.width, height: window.screen.height }
+
+    this.log('APP_INIT', {
+      userAgent: navigator.userAgent,
+      url: window.location.href,
+      screen: { width: window.screen.width, height: window.screen.height }
     });
-    
+
     if (typeof window !== 'undefined') {
-        (window as any).downloadSessionLogs = () => this.download();
-        (window as any).getSessionLogs = () => this.events;
-        
-        // Flush logs every 5 seconds to the backend
-        window.setInterval(() => this.flush(), 5000);
-        
-        // Flush on visibility change (tab switch/close) to ensure data is sent
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'hidden') {
-                this.flush(true);
-            }
-        });
+      (window as any).downloadSessionLogs = () => this.download();
+      (window as any).getSessionLogs = () => this.events;
+
+      // Flush logs every 5 seconds to the backend
+      window.setInterval(() => this.flush(), 5000);
+
+      // Flush on visibility change (tab switch/close) to ensure data is sent
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+          this.flush(true);
+        }
+      });
     }
   }
 
   setRecording(enabled: boolean) {
-      this.isRecording = enabled;
-      if (!enabled) {
-          this.queue = []; // Clear any pending logs if recording is disabled (e.g. entering replay mode)
-      }
+    this.isRecording = enabled;
+    if (!enabled) {
+      this.queue = []; // Clear any pending logs if recording is disabled (e.g. entering replay mode)
+    }
   }
 
   log(type: ActionType, data?: any) {
@@ -73,28 +73,28 @@ class DiagnosticsService {
     if (this.queue.length === 0) return;
 
     const payload = {
-        sessionId: this.sessionId,
-        events: this.queue
+      sessionId: this.sessionId,
+      events: this.queue
     };
-    
+
     // Clear queue immediately to prevent duplicates
     this.queue = [];
 
     const body = JSON.stringify(payload);
 
     if (useBeacon && navigator.sendBeacon) {
-        const blob = new Blob([body], { type: 'application/json' });
-        navigator.sendBeacon('/api/diagnostics', blob);
+      const blob = new Blob([body], { type: 'application/json' });
+      navigator.sendBeacon('/api/diagnostics', blob);
     } else {
-        try {
-            await fetch('/api/diagnostics', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: body
-            });
-        } catch (err) {
-            console.error('Failed to send diagnostics:', err);
-        }
+      try {
+        await fetch('/api/diagnostics', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: body
+        });
+      } catch (err) {
+        console.error('Failed to send diagnostics:', err);
+      }
     }
   }
 
