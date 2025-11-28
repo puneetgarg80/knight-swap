@@ -44,7 +44,6 @@ app.post('/api/diagnostics', (req, res) => {
         if (typeof body === 'string') {
             try { body = JSON.parse(body); } catch (e) { return res.status(400).send('Invalid JSON'); }
         }
-        console.log('Saving diagnostics:', body);
 
         const { sessionId, userName, events, timestamp } = body;
         if (!sessionId) return res.status(400).send('Missing sessionId');
@@ -78,6 +77,7 @@ app.get('/api/og-image', async (req, res) => {
     try {
         const browser = await puppeteer.launch({
             args: ['--no-sandbox', '--disable-setuid-sandbox'],
+            executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
             headless: 'new'
         });
         const page = await browser.newPage();

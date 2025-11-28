@@ -22,6 +22,21 @@ WORKDIR /app/server
 ENV NODE_ENV=production
 ENV PORT=3200
 
+# Install Chromium and dependencies for Puppeteer
+# We do this BEFORE copying package files so it's cached even if dependencies change
+RUN apk add --no-cache \
+    chromium \
+    nss \
+    freetype \
+    freetype-dev \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont
+
+# Tell Puppeteer to skip installing Chrome. We'll be using the installed package.
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+
 # Copy server package files
 COPY server/package*.json ./
 
