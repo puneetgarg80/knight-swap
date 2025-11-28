@@ -32,9 +32,10 @@ if (!fs.existsSync(LOGS_DIR)) {
 }
 console.log(`Diagnostics logs will be stored in: ${LOGS_DIR}`);
 
-const INDEX_PATH = path.join(__dirname, '../client/index.html');
+const INDEX_DIR = path.join(__dirname, '..', 'client', 'dist');
+const INDEX_PATH = path.join(INDEX_DIR, 'index.html');
 // Serve the project root so App.tsx and other root files are accessible if needed
-app.use(express.static(path.join(__dirname, '..'), { index: false }));
+app.use(express.static(INDEX_DIR, { index: false }));
 
 // --- API: Diagnostics ---
 app.post('/api/diagnostics', (req, res) => {
