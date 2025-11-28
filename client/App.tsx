@@ -365,8 +365,11 @@ const App: React.FC = () => {
     reader.onload = (evt) => {
       try {
         const json = JSON.parse(evt.target?.result as string);
-        setReplayLogs(json);
+        const events = json.events;
+        if (!Array.isArray(events)) throw new Error("Invalid log format");
+        setReplayLogs(events);
         setReplayIndex(-1);
+        setIsDiagnosticsMode(true);
       } catch (err) {
         alert("Failed to parse JSON log file.");
         console.error(err);
