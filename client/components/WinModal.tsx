@@ -78,7 +78,7 @@ const WinModal: React.FC<WinModalProps> = ({
             const uploadResponse = await fetch('/api/upload-certificate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ image: imageDataUrl })
+                body: JSON.stringify({ image: imageDataUrl, userName })
             });
 
             if (!uploadResponse.ok) throw new Error("Failed to upload certificate");

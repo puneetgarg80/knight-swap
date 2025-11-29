@@ -64,7 +64,7 @@ app.post('/api/diagnostics', async (req, res) => {
             events: events || []
         };
 
-        await storageService.saveLog(filename, logData);
+        await storageService.saveLog(filename, logData, userName);
         res.status(200).send('OK');
     } catch (err) {
         console.error('Error saving diagnostics:', err);
@@ -211,16 +211,15 @@ app.post('/api/chat', async (req, res) => {
 // --- API: Upload Certificate ---
 app.post('/api/upload-certificate', async (req, res) => {
     try {
-        const { image } = req.body;
+        const { image, userName } = req.body;
         if (!image) return res.status(400).send('Missing image data');
-
         // Remove header (data:image/png;base64,)
         const base64Data = image.replace(/^data:image\/png;base64,/, "");
         const certId = crypto.randomUUID();
         const filename = `${certId}.png`;
         const buffer = Buffer.from(base64Data, 'base64');
 
-        await storageService.saveCertificate(filename, buffer);
+        await storageService.saveCertificate(filename, buffer, userName);
 
         console.log(`Certificate saved: ${certId}`);
         res.json({ certId });
@@ -261,7 +260,7 @@ app.get('/', (req, res) => {
 
             if (certId) {
                 // Use the uploaded certificate
-                const certUrl = storageService.getCertificateUrl(`${certId}.png`);
+                const certUrl = storageService.getCertificateUrl(`${certId}.png`, challenger);
                 if (certUrl.startsWith('http')) {
                     imageUrl = certUrl;
                 } else {

@@ -8,16 +8,16 @@ class StorageService {
         console.log(`StorageService initialized with driver: ${this.driver.constructor.name}`);
     }
 
-    async saveLog(filename, data) {
-        return this.driver.saveLog(filename, data);
+    async saveLog(filename, data, userName) {
+        return this.driver.saveLog(filename, data, userName);
     }
 
-    async saveCertificate(filename, buffer) {
-        return this.driver.saveCertificate(filename, buffer);
+    async saveCertificate(filename, buffer, userName) {
+        return this.driver.saveCertificate(filename, buffer, userName);
     }
 
-    getCertificateUrl(filename) {
-        return this.driver.getCertificateUrl(filename);
+    getCertificateUrl(filename, userName) {
+        return this.driver.getCertificateUrl(filename, userName);
     }
 }
 
@@ -40,19 +40,26 @@ class LocalDriver {
         }
     }
 
-    async saveLog(filename, data) {
-        const filePath = path.join(this.logsDir, filename);
+    async saveLog(filename, data, userName) {
+        const userLogsDir = userName ? path.join(this.logsDir, 'users', userName) : this.logsDir;
+        this._ensureDir(userLogsDir);
+        const filePath = path.join(userLogsDir, filename);
         fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
         return filePath;
     }
 
-    async saveCertificate(filename, buffer) {
-        const filePath = path.join(this.certDir, filename);
+    async saveCertificate(filename, buffer, userName) {
+        const userCertDir = userName ? path.join(this.certDir, 'users', userName) : this.certDir;
+        this._ensureDir(userCertDir);
+        const filePath = path.join(userCertDir, filename);
         fs.writeFileSync(filePath, buffer);
         return filePath;
     }
 
-    getCertificateUrl(filename) {
+    getCertificateUrl(filename, userName) {
+        if (userName) {
+            return `/certificates/users/${userName}/${filename}`;
+        }
         return `/certificates/${filename}`;
     }
 }
@@ -67,17 +74,19 @@ class GCSDriver {
         this.bucket = this.storage.bucket(this.bucketName);
     }
 
-    async saveLog(filename, data) {
-        const file = this.bucket.file(`logs/${filename}`);
+    async saveLog(filename, data, userName) {
+        const path = userName ? `users/${userName}/logs/${filename}` : `logs/${filename}`;
+        const file = this.bucket.file(path);
         await file.save(JSON.stringify(data, null, 2), {
             contentType: 'application/json',
             resumable: false
         });
-        return `gs://${this.bucketName}/logs/${filename}`;
+        return `gs://${this.bucketName}/${path}`;
     }
 
-    async saveCertificate(filename, buffer) {
-        const file = this.bucket.file(`certificates/${filename}`);
+    async saveCertificate(filename, buffer, userName) {
+        const path = userName ? `users/${userName}/certificates/${filename}` : `certificates/${filename}`;
+        const file = this.bucket.file(path);
         await file.save(buffer, {
             contentType: 'image/png',
             resumable: false
@@ -87,11 +96,12 @@ class GCSDriver {
         } catch (err) {
             console.warn(`Failed to make certificate public: ${err.message}. Ensure bucket IAM allows public access if needed.`);
         }
-        return `gs://${this.bucketName}/certificates/${filename}`;
+        return `gs://${this.bucketName}/${path}`;
     }
 
-    getCertificateUrl(filename) {
-        return `https://storage.googleapis.com/${this.bucketName}/certificates/${filename}`;
+    getCertificateUrl(filename, userName) {
+        const path = userName ? `users/${userName}/certificates/${filename}` : `certificates/${filename}`;
+        return `https://storage.googleapis.com/${this.bucketName}/${path}`;
     }
 }
 
