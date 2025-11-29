@@ -13,6 +13,7 @@ import NameModal from './components/NameModal';
 import { walkthroughSteps } from './walkthroughSteps';
 import { diagnostics, DiagnosticEvent } from './diagnostics';
 import ReplayControls from './components/ReplayControls';
+import ChatSection from './components/ChatSection';
 
 const Chat = lazy(() => import('./components/Chat.tsx'));
 const Walkthrough = lazy(() => import('./components/Walkthrough'));
@@ -538,21 +539,38 @@ const App: React.FC = () => {
             <div data-walkthrough="board-container" className={`relative w-full transition-all duration-300 ${activeIsShowingTarget ? 'ring-2 ring-amber-400 rounded-lg shadow-lg' : ''}`}>
               {activeIsShowingTarget && <p className="absolute -top-6 left-0 right-0 text-center text-amber-400 text-sm font-semibold">TARGET STATE (VIEW-ONLY)</p>}
               {activeView === 'board' ? (
-                <Board
-                  boardState={boardToDisplay}
-                  onSquareClick={clickHandler}
-                  selectedSquare={activeIsShowingTarget ? null : selectedSquare}
-                  possibleMoves={activeIsShowingTarget ? [] : possibleMoves}
-                  shake={shake}
-                />
+                <>
+                  <Board
+                    boardState={boardToDisplay}
+                    onSquareClick={clickHandler}
+                    selectedSquare={activeIsShowingTarget ? null : selectedSquare}
+                    possibleMoves={activeIsShowingTarget ? [] : possibleMoves}
+                    shake={shake}
+                  />
+                  <ChatSection
+                    title="Board AI Helper"
+                    isUnlocked={boardChatUnlocked}
+                    onUnlock={() => requestUnlockAi('board')}
+                    context="board"
+                  />
+                </>
               ) : (
-                <InvestigationBoard
-                  boardState={boardToDisplay}
-                  onSquareClick={clickHandler}
-                  selectedSquare={activeIsShowingTarget ? null : selectedSquare}
-                  possibleMoves={activeIsShowingTarget ? [] : possibleMoves}
-                  shake={shake}
-                />
+                <>
+                  <InvestigationBoard
+                    boardState={boardToDisplay}
+                    onSquareClick={clickHandler}
+                    selectedSquare={activeIsShowingTarget ? null : selectedSquare}
+                    possibleMoves={activeIsShowingTarget ? [] : possibleMoves}
+                    shake={shake}
+                  />
+                  <ChatSection
+                    title="Map AI Helper"
+                    isUnlocked={mapChatUnlocked}
+                    onUnlock={() => requestUnlockAi('map')}
+                    initialMessage="How can I help with maps view?"
+                    context="map"
+                  />
+                </>
               )}
             </div>
           </main>
@@ -561,58 +579,7 @@ const App: React.FC = () => {
             {/* Rules moved to modal */}
           </footer>
 
-          {/* Embedded Chat Section */}
-          <div className="w-full max-w-2xl mt-2 mb-2">
-            {activeView === 'board' ? (
-              <div className="flex flex-col gap-2">
-                <h3 className="text-xl font-bold text-cyan-400">Board AI Helper</h3>
-                {!boardChatUnlocked ? (
-                  <div className="bg-gray-800 p-6 rounded-lg text-center border border-gray-700">
-                    <p className="text-gray-400 mb-4">Unlock the AI assistant for help with the board view.</p>
-                    <button
-                      onClick={() => requestUnlockAi('board')}
-                      className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-6 rounded-lg transition-colors flex items-center justify-center gap-2 mx-auto"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                      </svg>
-                      Unlock (20 pts)
-                    </button>
-                  </div>
-                ) : (
-                  <div className="h-[400px]">
-                    <Suspense fallback={<div className="text-center text-gray-500">Loading Chat...</div>}>
-                      <Chat />
-                    </Suspense>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="flex flex-col gap-2">
-                <h3 className="text-xl font-bold text-cyan-400">Map AI Helper</h3>
-                {!mapChatUnlocked ? (
-                  <div className="bg-gray-800 p-6 rounded-lg text-center border border-gray-700">
-                    <p className="text-gray-400 mb-4">Unlock the AI assistant for help with the map view.</p>
-                    <button
-                      onClick={() => requestUnlockAi('map')}
-                      className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-6 rounded-lg transition-colors flex items-center justify-center gap-2 mx-auto"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                      </svg>
-                      Unlock (20 pts)
-                    </button>
-                  </div>
-                ) : (
-                  <div className="h-[400px]">
-                    <Suspense fallback={<div className="text-center text-gray-500">Loading Chat...</div>}>
-                      <Chat initialMessage="How can I help with maps view?" />
-                    </Suspense>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+          {/* Embedded Chat Section Removed (Integrated above) */}
         </div>
 
         {/* Chat View Removed */}

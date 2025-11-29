@@ -7,11 +7,12 @@ import { ChatMessage } from '../types';
 interface ChatProps {
   replayMessages?: ChatMessage[];
   initialMessage?: string;
+  context: 'board' | 'map';
 }
 
 const MAX_MESSAGES = 40;
 
-const Chat: React.FC<ChatProps> = ({ replayMessages, initialMessage }) => {
+const Chat: React.FC<ChatProps> = ({ replayMessages, initialMessage, context }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -88,7 +89,8 @@ const Chat: React.FC<ChatProps> = ({ replayMessages, initialMessage }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: textToSend,
-          history: historyForApi
+          history: historyForApi,
+          context
         })
       });
 

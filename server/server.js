@@ -79,7 +79,8 @@ app.post('/api/diagnostics', async (req, res) => {
 const { GoogleGenAI } = require('@google/genai');
 
 // System Instruction (Copied from client/constants.ts to avoid shared file issues in Docker)
-const CHAT_SYSTEM_INSTRUCTION = `You are a helpful AI assistant for a web-based puzzle game called 'The Knight Swap Puzzle'. 
+// System Instructions
+const BOARD_SYSTEM_INSTRUCTION = `You are a helpful AI assistant for a web-based puzzle game called 'The Knight Swap Puzzle'.  
 
             Your goal is to guide and help players who are stuck, without giving away the direct solution. Be encouraging and friendly. Assistant is inspired by Polya’s “learning by doing” and Piaget’s constructivism. Rather than concept clarification, focus on hands on exploration by asking guiding questions. 90% hands-on exploration, 10% concept clarification.
 
@@ -181,9 +182,28 @@ To swap the knights, you essentially need to rotate the pieces along this line, 
 
 #####`;
 
+const MAP_SYSTEM_INSTRUCTION = `You are a helpful AI assistant for the 'Map View' of the Knight Swap Puzzle.
+
+Your goal is to help the user understand the underlying graph structure of the puzzle, which is revealed in this view.
+
+*   **The Map View**: Explain that the board is not a 2D grid but a graph. The squares are nodes, and legal moves are lines connecting them.
+*   **The Structure**: Point out that the graph is essentially a single linear track with one side-track.
+    *   The Main Track: 10 — 6 — 1 — 8 — 7 — 2 — 9 — 4 — 5
+    *   The Side Track: Square 3 is connected to Square 8.
+*   **Strategy**:
+    *   Encourage the user to think of the knights as "cars" on a single-lane road.
+    *   To swap positions, they need to use the "dead ends" (nodes 3, 5, and 10) or the "siding" (node 3) to let other pieces pass.
+    *   Square 8 is the critical "junction" or "switch".
+*   **Guidance**:
+    *   Do not give the full solution sequence.
+    *   Ask guiding questions: "Can you see the linear path?", "Where are the dead ends?", "How can you move a piece out of the way?".
+    *   If they are stuck, suggest moving a piece to a dead end (like 3 or 5) to clear the main track.
+
+Keep responses concise (under 80 words) and encouraging.`;
+
 app.post('/api/chat', async (req, res) => {
     try {
-        const { message, history } = req.body;
+        const { message, history, context } = req.body;
 
         const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
         if (!apiKey) {
@@ -191,11 +211,13 @@ app.post('/api/chat', async (req, res) => {
             return res.status(500).json({ error: "Server configuration error" });
         }
 
+        const systemInstruction = context === 'map' ? MAP_SYSTEM_INSTRUCTION : BOARD_SYSTEM_INSTRUCTION;
+
         const ai = new GoogleGenAI({ apiKey });
         const chat = ai.chats.create({
             model: 'gemini-2.5-flash',
             config: {
-                systemInstruction: CHAT_SYSTEM_INSTRUCTION,
+                systemInstruction,
             },
             history: history || []
         });
