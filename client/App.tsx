@@ -43,7 +43,7 @@ const App: React.FC = () => {
   // User State
   const [userName, setUserName] = useState<string>('');
   const [showNameModal, setShowNameModal] = useState(false);
-  const [challengeInfo, setChallengeInfo] = useState<{ name: string, score: string, moves: string } | null>(null);
+  const [challengeInfo, setChallengeInfo] = useState<{ name: string, score: string, moves: string, certImageUrl?: string } | null>(null);
   const [showChallengerModal, setShowChallengerModal] = useState(false);
 
   // Points / Unlock State
@@ -80,7 +80,8 @@ const App: React.FC = () => {
       setChallengeInfo({
         name: challengerName,
         score: challengerScore,
-        moves: challengerMoves || '0'
+        moves: challengerMoves || '0',
+        certImageUrl: document.querySelector('meta[property="og:image"]')?.getAttribute('content') || undefined
       });
       setShowChallengerModal(true);
     }
@@ -449,6 +450,7 @@ const App: React.FC = () => {
           moveCount={parseInt(challengeInfo.moves)}
           score={parseInt(challengeInfo.score)}
           userName={challengeInfo.name}
+          certImageUrl={challengeInfo.certImageUrl}
           onReset={() => { }}
           isChallengerView={true}
           onAcceptChallenge={() => {

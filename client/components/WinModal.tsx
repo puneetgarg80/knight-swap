@@ -10,6 +10,7 @@ interface WinModalProps {
     onReset: () => void;
     isChallengerView?: boolean;
     onAcceptChallenge?: () => void;
+    certImageUrl?: string;
 }
 
 const WinModal: React.FC<WinModalProps> = ({
@@ -18,7 +19,8 @@ const WinModal: React.FC<WinModalProps> = ({
     userName,
     onReset,
     isChallengerView = false,
-    onAcceptChallenge
+    onAcceptChallenge,
+    certImageUrl
 }) => {
     const [shareState, setShareState] = useState<'idle' | 'loading' | 'ready' | 'copied' | 'error'>('idle');
     const [generatedCertId, setGeneratedCertId] = useState<string | null>(null);
@@ -106,45 +108,51 @@ const WinModal: React.FC<WinModalProps> = ({
 
                 {/* CERTIFICATE CARD */}
                 <div id="certificate-card" className="bg-white p-8 pb-10 rounded-xl shadow-2xl text-center relative overflow-hidden">
-                    {/* Top color bar */}
-                    <div className="absolute top-0 left-0 w-full h-3 bg-cyan-500"></div>
+                    {isChallengerView && certImageUrl ? (
+                        <img src={certImageUrl} alt="Certificate" className="w-full h-auto rounded-lg" />
+                    ) : (
+                        <>
+                            {/* Top color bar */}
+                            <div className="absolute top-0 left-0 w-full h-3 bg-cyan-500"></div>
 
-                    <div className="mt-4">
-                        <h2 className="text-4xl font-black text-gray-900 leading-none mb-2">
-                            {isChallengerView ? "CHALLENGE" : "SOLVED!"}
-                        </h2>
-                        <div className="w-12 h-1 bg-amber-400 mx-auto rounded-full mb-4"></div>
-                        <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Knight Swap Challenge</p>
-                    </div>
+                            <div className="mt-4">
+                                <h2 className="text-4xl font-black text-gray-900 leading-none mb-2">
+                                    {isChallengerView ? "CHALLENGE" : "SOLVED!"}
+                                </h2>
+                                <div className="w-12 h-1 bg-amber-400 mx-auto rounded-full mb-4"></div>
+                                <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Knight Swap Challenge</p>
+                            </div>
 
-                    <div className="my-6">
-                        <p className="text-gray-400 text-xs uppercase tracking-widest mb-1">
-                            {isChallengerView ? "Challenger" : "Presented To"}
-                        </p>
-                        <p className="text-2xl font-bold text-gray-800">{userName}</p>
-                    </div>
+                            <div className="my-6">
+                                <p className="text-gray-400 text-xs uppercase tracking-widest mb-1">
+                                    {isChallengerView ? "Challenger" : "Presented To"}
+                                </p>
+                                <p className="text-2xl font-bold text-gray-800">{userName}</p>
+                            </div>
 
-                    <div className="my-8 flex items-center justify-center gap-8">
-                        <div className="text-center">
-                            <span className="block text-4xl font-black text-gray-800 leading-none">
-                                {moveCount}<span className="text-xl text-gray-400">/40</span>
-                            </span>
-                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Moves</span>
-                        </div>
-                        <div className="w-px h-12 bg-gray-200"></div>
-                        <div className="text-center">
-                            <span className="block text-4xl font-black text-amber-500 leading-none whitespace-nowrap">
-                                {score}<span className="text-xl text-gray-400">/100</span>
-                            </span>
-                            <span className="text-[10px] font-bold text-amber-500/80 uppercase tracking-widest">Score</span>
-                        </div>
-                    </div>
+                            <div className="my-8 flex items-center justify-center gap-8">
+                                <div className="text-center">
+                                    <span className="block text-4xl font-black text-gray-800 leading-none">
+                                        {moveCount}<span className="text-xl text-gray-400">/40</span>
+                                    </span>
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Moves</span>
+                                </div>
+                                <div className="w-px h-12 bg-gray-200"></div>
+                                <div className="text-center">
+                                    <span className="block text-4xl font-black text-amber-500 leading-none whitespace-nowrap">
+                                        {score}<span className="text-xl text-gray-400">/100</span>
+                                    </span>
+                                    <span className="text-[10px] font-bold text-amber-500/80 uppercase tracking-widest">Score</span>
+                                </div>
+                            </div>
 
-                    <div className="bg-gray-50 border border-gray-100 rounded-lg p-3">
-                        <p className="text-gray-500 text-sm font-medium italic">
-                            {isChallengerView ? "Can you beat this score?" : "\"Puzzle Master\""}
-                        </p>
-                    </div>
+                            <div className="bg-gray-50 border border-gray-100 rounded-lg p-3">
+                                <p className="text-gray-500 text-sm font-medium italic">
+                                    {isChallengerView ? "Can you beat this score?" : "\"Puzzle Master\""}
+                                </p>
+                            </div>
+                        </>
+                    )}
                 </div>
 
                 {/* CONTROLS */}
