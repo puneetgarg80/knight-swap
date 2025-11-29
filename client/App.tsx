@@ -205,6 +205,7 @@ const App: React.FC = () => {
   // --- Effective State (Live vs Replay) ---
   const activeHistory = isDiagnosticsMode && replayState ? replayState.history : history;
   const activeView = isDiagnosticsMode && replayState ? replayState.view : view;
+  const activeMessages = isDiagnosticsMode && replayState ? replayState.messages : undefined;
   // const activeMainView = isDiagnosticsMode && replayState ? replayState.mainView : mainView; // Removed
   const activeIsShowingTarget = isDiagnosticsMode && replayState ? replayState.isShowingTarget : isShowingTarget;
   const activeTotalAttempts = isDiagnosticsMode && replayState ? replayState.totalAttempts : totalAttempts;
@@ -536,34 +537,39 @@ const App: React.FC = () => {
               />
             </div>
 
-            <div data-walkthrough="board-container" className={`relative w-full transition-all duration-300 ${activeIsShowingTarget ? 'ring-2 ring-amber-400 rounded-lg shadow-lg' : ''}`}>
+            <div className={`relative w-full transition-all duration-300 ${activeIsShowingTarget ? 'ring-2 ring-amber-400 rounded-lg shadow-lg' : ''}`}>
               {activeIsShowingTarget && <p className="absolute -top-6 left-0 right-0 text-center text-amber-400 text-sm font-semibold">TARGET STATE (VIEW-ONLY)</p>}
               {activeView === 'board' ? (
                 <>
-                  <Board
-                    boardState={boardToDisplay}
-                    onSquareClick={clickHandler}
-                    selectedSquare={activeIsShowingTarget ? null : selectedSquare}
-                    possibleMoves={activeIsShowingTarget ? [] : possibleMoves}
-                    shake={shake}
-                  />
+                  <div data-walkthrough="board-container">
+                    <Board
+                      boardState={boardToDisplay}
+                      onSquareClick={clickHandler}
+                      selectedSquare={activeIsShowingTarget ? null : selectedSquare}
+                      possibleMoves={activeIsShowingTarget ? [] : possibleMoves}
+                      shake={shake}
+                    />
+                  </div>
                   <ChatSection
                     key="board-chat"
                     title="Board AI Helper"
                     isUnlocked={boardChatUnlocked}
                     onUnlock={() => requestUnlockAi('board')}
                     context="board"
+                    replayMessages={activeMessages}
                   />
                 </>
               ) : (
                 <>
-                  <InvestigationBoard
-                    boardState={boardToDisplay}
-                    onSquareClick={clickHandler}
-                    selectedSquare={activeIsShowingTarget ? null : selectedSquare}
-                    possibleMoves={activeIsShowingTarget ? [] : possibleMoves}
-                    shake={shake}
-                  />
+                  <div data-walkthrough="board-container">
+                    <InvestigationBoard
+                      boardState={boardToDisplay}
+                      onSquareClick={clickHandler}
+                      selectedSquare={activeIsShowingTarget ? null : selectedSquare}
+                      possibleMoves={activeIsShowingTarget ? [] : possibleMoves}
+                      shake={shake}
+                    />
+                  </div>
                   <ChatSection
                     key="map-chat"
                     title="Map AI Helper"
@@ -571,6 +577,7 @@ const App: React.FC = () => {
                     onUnlock={() => requestUnlockAi('map')}
                     initialMessage="How can I help with maps view?"
                     context="map"
+                    replayMessages={activeMessages}
                   />
                 </>
               )}

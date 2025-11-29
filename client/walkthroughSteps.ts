@@ -21,19 +21,25 @@ export const walkthroughSteps: WalkthroughStep[] = [
   {
     title: 'Moves & Score',
     content: 'Keep an eye on your Moves. Efficient solving (under 40 moves) protects your score. Excess moves will reduce your score.',
-    targetSelector: '[data-walkthrough="move-counter"]',
+    targetSelector: '[data-walkthrough="moves-score"]',
+    placement: 'bottom',
+  },
+  {
+    title: 'View Target',
+    content: 'Toggle this switch to see the target state you are aiming for.',
+    targetSelector: '[data-walkthrough="view-target-toggle"]',
     placement: 'bottom',
   },
   {
     title: 'Unlock Map View',
     content: 'Stuck? You can unlock the Map View to see the hidden connections. But be warned: it costs 20 Points!',
-    targetSelector: '[data-walkthrough="view-switcher"]',
+    targetSelector: '[data-walkthrough="unlock-map-btn"]',
     placement: 'bottom',
   },
   {
     title: 'Unlock AI Helper',
     content: 'Need a hint? You can unlock the AI Helper for 20 Points to guide you through the solution.',
-    targetSelector: '[data-walkthrough="ai-helper-tab"]',
+    targetSelector: '[data-walkthrough="chat-section"]',
     placement: 'top',
   },
   {

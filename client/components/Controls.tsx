@@ -45,7 +45,7 @@ const Controls: React.FC<ControlsProps> = ({
 }) => {
   return (
     <div className="flex flex-wrap items-center justify-between w-full bg-gray-800/50 p-3 rounded-lg gap-4">
-      <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+      <div className="flex flex-row gap-4" data-walkthrough="moves-score">
         <div className="text-lg" data-walkthrough="move-counter">
           Moves: <span className="font-bold text-cyan-400 text-xl">{moveCount}</span>
         </div>
@@ -55,7 +55,7 @@ const Controls: React.FC<ControlsProps> = ({
       </div>
 
       <div className="flex items-center gap-4">
-        <div data-walkthrough="view-target">
+        <div data-walkthrough="view-target-toggle">
           <ToggleSwitch
             label="View Target"
             checked={isShowingTarget}

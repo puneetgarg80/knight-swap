@@ -7,11 +7,12 @@ interface ChatSectionProps {
     onUnlock: () => void;
     initialMessage?: string;
     context: 'board' | 'map';
+    replayMessages?: any[]; // Using any[] to avoid importing ChatMessage type if not easy, but better to import it.
 }
 
-const ChatSection: React.FC<ChatSectionProps> = ({ title, isUnlocked, onUnlock, initialMessage, context }) => {
+const ChatSection: React.FC<ChatSectionProps> = ({ title, isUnlocked, onUnlock, initialMessage, context, replayMessages }) => {
     return (
-        <div className="w-full max-w-2xl mt-2 mb-2">
+        <div className="w-full max-w-2xl mt-2 mb-2" data-walkthrough="chat-section">
             <div className="flex flex-col gap-2">
                 <h3 className="text-xl font-bold text-cyan-400">{title}</h3>
                 {!isUnlocked ? (
@@ -28,9 +29,9 @@ const ChatSection: React.FC<ChatSectionProps> = ({ title, isUnlocked, onUnlock, 
                         </button>
                     </div>
                 ) : (
-                    <div className="h-[400px]">
+                    <div className="h-[380px]">
                         <Suspense fallback={<div className="text-center text-gray-500">Loading Chat...</div>}>
-                            <Chat initialMessage={initialMessage} context={context} />
+                            <Chat initialMessage={initialMessage} context={context} replayMessages={replayMessages} />
                         </Suspense>
                     </div>
                 )}
