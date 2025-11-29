@@ -6,11 +6,12 @@ import { ChatMessage } from '../types';
 
 interface ChatProps {
   replayMessages?: ChatMessage[];
+  initialMessage?: string;
 }
 
 const MAX_MESSAGES = 40;
 
-const Chat: React.FC<ChatProps> = ({ replayMessages }) => {
+const Chat: React.FC<ChatProps> = ({ replayMessages, initialMessage }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -28,7 +29,8 @@ const Chat: React.FC<ChatProps> = ({ replayMessages }) => {
     if (isReplayMode) return;
 
     const initializeChat = () => {
-      const initialMsg: ChatMessage = { role: 'model', text: "Hello! I'm your AI assistant for the Knight Swap Puzzle. Do you need help?" };
+      const text = initialMessage || "Hello! I'm your AI assistant for the Knight Swap Puzzle. Do you need help?";
+      const initialMsg: ChatMessage = { role: 'model', text };
       setMessages([initialMsg]);
       // Log the initial message so it appears in replays
       diagnostics.log('CHAT_MSG_RECEIVED', { text: initialMsg.text });
