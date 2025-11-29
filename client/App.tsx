@@ -548,6 +548,7 @@ const App: React.FC = () => {
                     shake={shake}
                   />
                   <ChatSection
+                    key="board-chat"
                     title="Board AI Helper"
                     isUnlocked={boardChatUnlocked}
                     onUnlock={() => requestUnlockAi('board')}
@@ -564,6 +565,7 @@ const App: React.FC = () => {
                     shake={shake}
                   />
                   <ChatSection
+                    key="map-chat"
                     title="Map AI Helper"
                     isUnlocked={mapChatUnlocked}
                     onUnlock={() => requestUnlockAi('map')}
