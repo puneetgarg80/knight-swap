@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
@@ -21,27 +22,16 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.text({ limit: '50mb', type: 'text/*' }));
 
 // Logs directory setup
+const storageService = require('./storage');
+
+// Logs directory setup (Still needed for local driver or fallback, but managed by storage service mostly)
 const LOGS_DIR = process.env.LOGS_DIR || path.join(__dirname, 'logs');
-if (!fs.existsSync(LOGS_DIR)) {
-    try {
-        fs.mkdirSync(LOGS_DIR, { recursive: true });
-    } catch (err) {
-        console.error(`Failed to create logs directory at ${LOGS_DIR}:`, err);
-    }
-}
-console.log(`Diagnostics logs will be stored in: ${LOGS_DIR}`);
+console.log(`Diagnostics logs will be stored via StorageService`);
 console.log('API_KEY environment is set: ', process.env.API_KEY);
 console.log('GEMINI_API_KEY environment is set: ', process.env.GEMINI_API_KEY);
 
-// Certificates directory setup
+// Certificates directory setup (Still needed for serving static files if local)
 const CERT_DIR = path.join(__dirname, 'public', 'certificates');
-if (!fs.existsSync(CERT_DIR)) {
-    try {
-        fs.mkdirSync(CERT_DIR, { recursive: true });
-    } catch (err) {
-        console.error(`Failed to create certificates directory at ${CERT_DIR}:`, err);
-    }
-}
 
 const INDEX_DIR = path.join(__dirname, '..', 'client', 'dist');
 const INDEX_PATH = path.join(INDEX_DIR, 'index.html');
@@ -53,7 +43,7 @@ app.use(express.static(INDEX_DIR, { index: false }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // --- API: Diagnostics ---
-app.post('/api/diagnostics', (req, res) => {
+app.post('/api/diagnostics', async (req, res) => {
     try {
         let body = req.body;
         if (typeof body === 'string') {
@@ -64,7 +54,7 @@ app.post('/api/diagnostics', (req, res) => {
         if (!sessionId) return res.status(400).send('Missing sessionId');
 
         const safeSessionId = sessionId.replace(/[^a-zA-Z0-9-]/g, '');
-        const filePath = path.join(LOGS_DIR, `${safeSessionId}.json`);
+        const filename = `${safeSessionId}.json`;
 
         const logData = {
             sessionId,
@@ -74,7 +64,7 @@ app.post('/api/diagnostics', (req, res) => {
             events: events || []
         };
 
-        fs.writeFileSync(filePath, JSON.stringify(logData, null, 2));
+        await storageService.saveLog(filename, logData);
         res.status(200).send('OK');
     } catch (err) {
         console.error('Error saving diagnostics:', err);
@@ -195,12 +185,13 @@ app.post('/api/chat', async (req, res) => {
     try {
         const { message, history } = req.body;
 
-        if (!process.env.API_KEY) {
-            console.error("API_KEY not set on server");
+        const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+        if (!apiKey) {
+            console.error("API_KEY/GEMINI_API_KEY not set on server");
             return res.status(500).json({ error: "Server configuration error" });
         }
 
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const ai = new GoogleGenAI({ apiKey });
         const chat = ai.chats.create({
             model: 'gemini-2.5-flash',
             config: {
@@ -218,7 +209,7 @@ app.post('/api/chat', async (req, res) => {
 });
 
 // --- API: Upload Certificate ---
-app.post('/api/upload-certificate', (req, res) => {
+app.post('/api/upload-certificate', async (req, res) => {
     try {
         const { image } = req.body;
         if (!image) return res.status(400).send('Missing image data');
@@ -226,9 +217,10 @@ app.post('/api/upload-certificate', (req, res) => {
         // Remove header (data:image/png;base64,)
         const base64Data = image.replace(/^data:image\/png;base64,/, "");
         const certId = crypto.randomUUID();
-        const filePath = path.join(CERT_DIR, `${certId}.png`);
+        const filename = `${certId}.png`;
+        const buffer = Buffer.from(base64Data, 'base64');
 
-        fs.writeFileSync(filePath, base64Data, 'base64');
+        await storageService.saveCertificate(filename, buffer);
 
         console.log(`Certificate saved: ${certId}`);
         res.json({ certId });
@@ -238,8 +230,15 @@ app.post('/api/upload-certificate', (req, res) => {
     }
 });
 
+// --- Handle Favicon ---
+app.get('/favicon.ico', (req, res) => res.status(204).end());
+
 // --- Catch-All for Index + Meta Tags ---
-app.get('*', (req, res) => {
+app.get('/', (req, res) => {
+    // Ignore non-HTML requests (e.g. missing assets)
+    if (req.headers.accept && !req.headers.accept.includes('text/html')) {
+        return res.status(404).send('Not Found');
+    }
     fs.readFile(INDEX_PATH, 'utf8', (err, htmlData) => {
         if (err) {
             console.error('Error reading index.html:', err);
@@ -262,10 +261,15 @@ app.get('*', (req, res) => {
 
             if (certId) {
                 // Use the uploaded certificate
-                imageUrl = `${baseUrl}/certificates/${certId}.png`;
+                const certUrl = storageService.getCertificateUrl(`${certId}.png`);
+                if (certUrl.startsWith('http')) {
+                    imageUrl = certUrl;
+                } else {
+                    imageUrl = `${baseUrl}${certUrl}`;
+                }
             }
         }
-
+        console.log(`Image URL: ${imageUrl}`);
         htmlData = htmlData
             .replace(/<meta property="og:title" content="[^"]*" \/>/, `<meta property="og:title" content="${title}" />`)
             .replace(/<meta property="og:description" content="[^"]*" \/>/, `<meta property="og:description" content="${description}" />`)
