@@ -5,6 +5,8 @@ import { INITIAL_BOARD_STATE, TARGET_BOARD_STATE, LEGAL_MOVES } from './constant
 import Board from './components/Board';
 import Controls from './components/Controls';
 import WinModal from './components/WinModal';
+import RulesModal from './components/RulesModal';
+import ViewSwitcher from './components/ViewSwitcher';
 import InvestigationBoard from './components/InvestigationBoard';
 import UnlockModal from './components/UnlockModal';
 import NameModal from './components/NameModal';
@@ -45,6 +47,7 @@ const App: React.FC = () => {
   const [showNameModal, setShowNameModal] = useState(false);
   const [challengeInfo, setChallengeInfo] = useState<{ name: string, score: string, moves: string, certImageUrl?: string } | null>(null);
   const [showChallengerModal, setShowChallengerModal] = useState(false);
+  const [showRulesModal, setShowRulesModal] = useState(false);
 
   // Points / Unlock State
   const [mapUnlocked, setMapUnlocked] = useState(() => {
@@ -482,6 +485,12 @@ const App: React.FC = () => {
         />
       )}
 
+      <RulesModal
+        isOpen={showRulesModal}
+        onClose={() => setShowRulesModal(false)}
+        view={activeView}
+      />
+
       {/* Challenge Banner (After Accepting) */}
       {challengeInfo && !activeIsSolved && !isDiagnosticsMode && !showChallengerModal && (
         <div className="bg-gradient-to-r from-amber-600 to-amber-500 text-white px-4 py-2 text-center text-sm font-bold shadow-md z-20 flex justify-between items-center">
@@ -529,7 +538,22 @@ const App: React.FC = () => {
               }}
               isMapUnlocked={mapUnlocked}
               onRequestUnlockMap={requestUnlockMap}
+              onShowRules={() => setShowRulesModal(true)}
             />
+
+            <div className="w-full flex justify-center mb-2" data-walkthrough="view-switcher">
+              <ViewSwitcher
+                currentView={activeView}
+                onViewChange={(newView) => {
+                  if (isDiagnosticsMode) return;
+                  diagnostics.log('CHANGE_VIEW_MODE', { view: newView });
+                  setView(newView);
+                }}
+                isMapUnlocked={mapUnlocked}
+                onUnlockRequest={requestUnlockMap}
+              />
+            </div>
+
             <div data-walkthrough="board-container" className={`relative w-full transition-all duration-300 ${activeIsShowingTarget ? 'ring-2 ring-amber-400 rounded-lg shadow-lg' : ''}`}>
               {activeIsShowingTarget && <p className="absolute -top-6 left-0 right-0 text-center text-amber-400 text-sm font-semibold">TARGET STATE (VIEW-ONLY)</p>}
               {activeView === 'board' ? (
@@ -553,27 +577,7 @@ const App: React.FC = () => {
           </main>
 
           <footer className="w-full text-center">
-            <div className="bg-gray-800 p-4 rounded-lg text-sm max-w-md mx-auto">
-              {activeView === 'map' ? (
-                <>
-                  <p className="font-semibold mb-2 text-cyan-400">About Map View</p>
-                  <ul className="list-disc list-inside space-y-2 text-gray-400 text-left">
-                    <li><strong>Graph Transformation:</strong> We converted the board squares into nodes and legal Knight moves into connecting lines.</li>
-                    <li><strong>Hidden Structure:</strong> This reveals that the puzzle isn't a complex 2D grid, but a simple linear track with one side-path.</li>
-                    <li><strong>Goal:</strong> Treat each knight like a car and connections like streets. Simply drive the cars along the track to swap their positions.</li>
-                  </ul>
-                </>
-              ) : (
-                <>
-                  <p className="font-semibold mb-2">Rules:</p>
-                  <ul className="list-disc list-inside space-y-1 text-gray-400">
-                    <li>Knights move in an 'L' shape (or follow the lines in Map View).</li>
-                    <li>A knight can only move to an empty square.</li>
-                    <li>Click a knight to select it, then click an empty square to move.</li>
-                  </ul>
-                </>
-              )}
-            </div>
+            {/* Rules moved to modal */}
           </footer>
         </div>
 
