@@ -14,6 +14,7 @@ import { walkthroughSteps } from './walkthroughSteps';
 import { diagnostics, DiagnosticEvent } from './diagnostics';
 import ReplayControls from './components/ReplayControls';
 import ChatSection from './components/ChatSection';
+import SuggestionModal from './components/SuggestionModal';
 
 const Chat = lazy(() => import('./components/Chat.tsx'));
 const Walkthrough = lazy(() => import('./components/Walkthrough'));
@@ -49,6 +50,9 @@ const App: React.FC = () => {
   const [challengeInfo, setChallengeInfo] = useState<{ name: string, score: string, moves: string, certImageUrl?: string } | null>(null);
   const [showChallengerModal, setShowChallengerModal] = useState(false);
   const [showRulesModal, setShowRulesModal] = useState(false);
+  const [showAiSuggestion, setShowAiSuggestion] = useState(false);
+  const [hasShownAiSuggestion, setHasShownAiSuggestion] = useState(false);
+  const [internalInteractionCount, setInternalInteractionCount] = useState(0);
 
   // Points / Unlock State
   const [mapUnlocked, setMapUnlocked] = useState(() => {
@@ -123,6 +127,8 @@ const App: React.FC = () => {
     }
     return () => clearInterval(interval);
   }, [isReplayPlaying, replayIndex, replayLogs.length, isDiagnosticsMode]);
+
+
 
   // --- Replay State Derivation ---
   const replayState = useMemo(() => {
@@ -214,6 +220,17 @@ const App: React.FC = () => {
   const currentBoard = activeHistory[activeHistory.length - 1];
   const moveCount = activeHistory.length - 1;
 
+  // AI Suggestion Logic
+  useEffect(() => {
+    if (internalInteractionCount >= 20 && !hasShownAiSuggestion && !activeIsSolved && !isDiagnosticsMode) {
+      const isCurrentAiUnlocked = activeView === 'board' ? boardChatUnlocked : mapChatUnlocked;
+      if (!isCurrentAiUnlocked) {
+        setShowAiSuggestion(true);
+        setHasShownAiSuggestion(true);
+      }
+    }
+  }, [internalInteractionCount, hasShownAiSuggestion, activeIsSolved, isDiagnosticsMode, activeView, boardChatUnlocked, mapChatUnlocked]);
+
   // --- Score Calculation ---
   const currentScore = useMemo(() => {
     let score = 100;
@@ -303,6 +320,7 @@ const App: React.FC = () => {
         const newHistory = [...activeHistory, newBoardState];
         setHistory(newHistory);
         setTotalAttempts(prev => prev + 1);
+        setInternalInteractionCount(prev => prev + 1);
         checkWinCondition(newBoardState, newHistory.length - 1);
       } else {
         setShake(true);
@@ -336,6 +354,7 @@ const App: React.FC = () => {
       diagnostics.log('UNDO', { moveCountBeforeUndo: activeHistory.length - 1 });
       setHistory(activeHistory.slice(0, -1));
       setTotalAttempts(prev => Math.max(0, prev - 1));
+      setInternalInteractionCount(prev => prev + 1);
       setSelectedSquare(null);
       if (activeIsSolved) setIsSolved(false);
     }
@@ -473,6 +492,16 @@ const App: React.FC = () => {
         onClose={() => setShowRulesModal(false)}
         view={activeView}
       />
+
+      {showAiSuggestion && (
+        <SuggestionModal
+          onUnlock={() => {
+            setShowAiSuggestion(false);
+            requestUnlockAi(activeView);
+          }}
+          onClose={() => setShowAiSuggestion(false)}
+        />
+      )}
 
       {/* Challenge Banner (After Accepting) */}
       {challengeInfo && !activeIsSolved && !isDiagnosticsMode && !showChallengerModal && (
