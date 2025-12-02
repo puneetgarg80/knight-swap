@@ -34,7 +34,7 @@ const Chat: React.FC<ChatProps> = ({ replayMessages, initialMessage, context }) 
       const initialMsg: ChatMessage = { role: 'model', text };
       setMessages([initialMsg]);
       // Log the initial message so it appears in replays
-      diagnostics.log('CHAT_MSG_RECEIVED', { text: initialMsg.text });
+      diagnostics.log('CHAT_MSG_RECEIVED', { text: initialMsg.text, context });
     };
     initializeChat();
   }, [isReplayMode]);
@@ -67,7 +67,7 @@ const Chat: React.FC<ChatProps> = ({ replayMessages, initialMessage, context }) 
       textareaRef.current.style.height = 'auto';
     }
 
-    diagnostics.log('CHAT_MSG_SENT', { text: userMessage.text });
+    diagnostics.log('CHAT_MSG_SENT', { text: userMessage.text, context });
 
     try {
       // Prepare history for the API (excluding the message we just added locally for now, or include it? 
@@ -100,12 +100,12 @@ const Chat: React.FC<ChatProps> = ({ replayMessages, initialMessage, context }) 
       const modelMessage: ChatMessage = { role: 'model', text: data.text };
 
       setMessages(prev => [...prev, modelMessage]);
-      diagnostics.log('CHAT_MSG_RECEIVED', { text: modelMessage.text });
+      diagnostics.log('CHAT_MSG_RECEIVED', { text: modelMessage.text, context });
     } catch (error) {
       console.error("Error sending message:", error);
       const errorMessage: ChatMessage = { role: 'model', text: "Oops! Something went wrong. Please try again." };
       setMessages(prev => [...prev, errorMessage]);
-      diagnostics.log('CHAT_ERROR', { error: String(error) });
+      diagnostics.log('CHAT_ERROR', { error: String(error), context });
     } finally {
       setIsLoading(false);
     }

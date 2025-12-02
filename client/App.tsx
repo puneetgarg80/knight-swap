@@ -78,7 +78,6 @@ const App: React.FC = () => {
     if (params.get('mode') === 'diagnostics') {
       setIsDiagnosticsMode(true);
       setShowWalkthrough(false); // No walkthrough in diagnostics
-      diagnostics.setRecording(false); // Disable recording in diagnostics mode
       return;
     }
 
@@ -111,6 +110,11 @@ const App: React.FC = () => {
     }
   }, []);
 
+  // Sync recording state with diagnostics mode
+  useEffect(() => {
+    diagnostics.setRecording(!isDiagnosticsMode);
+  }, [isDiagnosticsMode]);
+
   // Auto-play logic
   useEffect(() => {
     let interval: any;
@@ -137,10 +141,14 @@ const App: React.FC = () => {
     let rHistory: BoardState[] = [INITIAL_BOARD_STATE];
     let rView: View = 'board';
     // let rMainView: MainView = 'puzzle'; // Removed
-    let rMessages: ChatMessage[] = [];
+    let rBoardMessages: ChatMessage[] = [];
+    let rMapMessages: ChatMessage[] = [];
     let rIsShowingTarget = false;
     let rTotalAttempts = 0;
     let rIsSolved = false;
+    let rMapUnlocked = false;
+    let rBoardChatUnlocked = false;
+    let rMapChatUnlocked = false;
 
     // Iterate up to the current replay index
     for (let i = 0; i <= replayIndex; i++) {
@@ -183,16 +191,36 @@ const App: React.FC = () => {
           rIsShowingTarget = event.data.showing;
           break;
         case 'CHAT_MSG_SENT':
-          rMessages.push({ role: 'user', text: event.data.text });
+          if (event.data.context === 'map') {
+            rMapMessages.push({ role: 'user', text: event.data.text });
+          } else {
+            rBoardMessages.push({ role: 'user', text: event.data.text });
+          }
           break;
         case 'CHAT_MSG_RECEIVED':
-          rMessages.push({ role: 'model', text: event.data.text });
+          if (event.data.context === 'map') {
+            rMapMessages.push({ role: 'model', text: event.data.text });
+          } else {
+            rBoardMessages.push({ role: 'model', text: event.data.text });
+          }
           break;
         case 'CHAT_ERROR':
-          rMessages.push({ role: 'model', text: event.data.error });
+          if (event.data.context === 'map') {
+            rMapMessages.push({ role: 'model', text: event.data.error });
+          } else {
+            rBoardMessages.push({ role: 'model', text: event.data.error });
+          }
           break;
         case 'PUZZLE_SOLVED':
           rIsSolved = true;
+          break;
+        case 'UNLOCK_MAP':
+          rMapUnlocked = true;
+          rView = 'map';
+          break;
+        case 'UNLOCK_AI':
+          if (event.data.type === 'board') rBoardChatUnlocked = true;
+          else if (event.data.type === 'map') rMapChatUnlocked = true;
           break;
       }
     }
@@ -201,21 +229,33 @@ const App: React.FC = () => {
       history: rHistory,
       view: rView,
       // mainView: rMainView, // Removed
-      messages: rMessages,
+      messages: [], // Deprecated/Unused in favor of specific ones
+      boardMessages: rBoardMessages,
+      mapMessages: rMapMessages,
       isShowingTarget: rIsShowingTarget,
       totalAttempts: rTotalAttempts,
-      isSolved: rIsSolved
+
+      isSolved: rIsSolved,
+      mapUnlocked: rMapUnlocked,
+      boardChatUnlocked: rBoardChatUnlocked,
+      mapChatUnlocked: rMapChatUnlocked
     };
   }, [isDiagnosticsMode, replayLogs, replayIndex]);
 
   // --- Effective State (Live vs Replay) ---
   const activeHistory = isDiagnosticsMode && replayState ? replayState.history : history;
   const activeView = isDiagnosticsMode && replayState ? replayState.view : view;
-  const activeMessages = isDiagnosticsMode && replayState ? replayState.messages : undefined;
+
+  const activeBoardMessages = isDiagnosticsMode && replayState ? replayState.boardMessages : undefined;
+  const activeMapMessages = isDiagnosticsMode && replayState ? replayState.mapMessages : undefined;
   // const activeMainView = isDiagnosticsMode && replayState ? replayState.mainView : mainView; // Removed
   const activeIsShowingTarget = isDiagnosticsMode && replayState ? replayState.isShowingTarget : isShowingTarget;
   const activeTotalAttempts = isDiagnosticsMode && replayState ? replayState.totalAttempts : totalAttempts;
+
   const activeIsSolved = isDiagnosticsMode && replayState ? replayState.isSolved : isSolved;
+  const activeMapUnlocked = isDiagnosticsMode && replayState ? replayState.mapUnlocked : mapUnlocked;
+  const activeBoardChatUnlocked = isDiagnosticsMode && replayState ? replayState.boardChatUnlocked : boardChatUnlocked;
+  const activeMapChatUnlocked = isDiagnosticsMode && replayState ? replayState.mapChatUnlocked : mapChatUnlocked;
 
   const currentBoard = activeHistory[activeHistory.length - 1];
   const moveCount = activeHistory.length - 1;
@@ -244,7 +284,7 @@ const App: React.FC = () => {
     score -= movePenalty;
 
     return score;
-  }, [activeTotalAttempts, mapUnlocked, boardChatUnlocked, mapChatUnlocked]);
+  }, [activeTotalAttempts, activeMapUnlocked, activeBoardChatUnlocked, activeMapChatUnlocked]);
 
   useEffect(() => {
     if (isDiagnosticsMode || showNameModal || showChallengerModal || activeIsSolved) return;
@@ -368,6 +408,7 @@ const App: React.FC = () => {
       onConfirm: () => {
         setMapUnlocked(true);
         localStorage.setItem('knightSwapMapUnlocked', 'true');
+        diagnostics.log('UNLOCK_MAP');
         setView('map');
         setUnlockModalConfig(null);
       }
@@ -386,6 +427,7 @@ const App: React.FC = () => {
           setMapChatUnlocked(true);
           localStorage.setItem('knightSwapMapChatUnlocked', 'true');
         }
+        diagnostics.log('UNLOCK_AI', { type });
         setUnlockModalConfig(null);
       }
     });
@@ -461,6 +503,7 @@ const App: React.FC = () => {
           onAcceptChallenge={() => {
             setShowChallengerModal(false);
             // setMainView('puzzle'); // Removed
+            diagnostics.log('CHANGE_VIEW_MODE', { view: 'board' });
             setView('board');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
@@ -548,7 +591,7 @@ const App: React.FC = () => {
                 diagnostics.log('TOGGLE_TARGET_VIEW', { showing: newVal });
                 setIsShowingTarget(newVal);
               }}
-              isMapUnlocked={mapUnlocked}
+              isMapUnlocked={activeMapUnlocked}
               onRequestUnlockMap={requestUnlockMap}
               onShowRules={() => setShowRulesModal(true)}
             />
@@ -561,7 +604,7 @@ const App: React.FC = () => {
                   diagnostics.log('CHANGE_VIEW_MODE', { view: newView });
                   setView(newView);
                 }}
-                isMapUnlocked={mapUnlocked}
+                isMapUnlocked={activeMapUnlocked}
                 onUnlockRequest={requestUnlockMap}
               />
             </div>
@@ -582,10 +625,10 @@ const App: React.FC = () => {
                   <ChatSection
                     key="board-chat"
                     title="Board AI Helper"
-                    isUnlocked={boardChatUnlocked}
+                    isUnlocked={activeBoardChatUnlocked}
                     onUnlock={() => requestUnlockAi('board')}
                     context="board"
-                    replayMessages={activeMessages}
+                    replayMessages={activeBoardMessages}
                   />
                 </>
               ) : (
@@ -602,11 +645,11 @@ const App: React.FC = () => {
                   <ChatSection
                     key="map-chat"
                     title="Map AI Helper"
-                    isUnlocked={mapChatUnlocked}
+                    isUnlocked={activeMapChatUnlocked}
                     onUnlock={() => requestUnlockAi('map')}
                     initialMessage="How can I help with maps view?"
                     context="map"
-                    replayMessages={activeMessages}
+                    replayMessages={activeMapMessages}
                   />
                 </>
               )}

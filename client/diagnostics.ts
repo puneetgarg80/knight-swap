@@ -11,7 +11,9 @@ export type ActionType =
   | 'CHAT_MSG_RECEIVED'
   | 'CHAT_ERROR'
   | 'PUZZLE_SOLVED'
-  | 'USER_IDENTIFIED';
+  | 'USER_IDENTIFIED'
+  | 'UNLOCK_MAP'
+  | 'UNLOCK_AI';
 
 export interface DiagnosticEvent {
   timestamp: number;
@@ -98,6 +100,7 @@ class DiagnosticsService {
   }
 
   async flush(useBeacon = false) {
+    if (!this.isRecording) return;
 
 
     const events = this.getStoredEvents();
